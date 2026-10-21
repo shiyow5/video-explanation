@@ -1,0 +1,14 @@
+node_modules/
+out/
+dist/
+.env
+.DS_Store
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# 生成物（音声・BGM・動画）と、伏せる語の一覧は公開しない
+**/public/voice*/
+**/public/*.wav
+*.mp4
+banned_words.txt

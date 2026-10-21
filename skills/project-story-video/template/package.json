@@ -1,0 +1,36 @@
+{
+  "name": "project-story-video",
+  "version": "1.0.0",
+  "description": "台本 JSON から経緯・進捗の解説動画を作る Remotion プロジェクト",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.537",
+    "@remotion/google-fonts": "4.0.537",
+    "@remotion/media": "4.0.537",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.537"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.537",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "10.12.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "check": "python3 scripts/check_script.py scripts/narration.json",
+    "voice": "python3 scripts/gen_voice.py scripts/narration.json src/voice-manifest.json voice",
+    "lint": "eslint src && tsc",
+    "test": "python3 -m pytest -q tests"
+  },
+  "allowScripts": {
+    "esbuild": false
+  }
+}
