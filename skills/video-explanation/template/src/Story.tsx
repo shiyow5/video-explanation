@@ -8,8 +8,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { KINDS } from "./kinds";
 import { Background, Caption, Progress, SourceNote } from "./parts";
+import { kindComponent } from "./registry";
 import { STORIES, StoryDef } from "./stories";
 import { SceneTiming, buildTimings, fontFamily, totalFrames } from "./theme";
 import { Script } from "./types";
@@ -38,7 +38,7 @@ const Scene: React.FC<{ timing: SceneTiming; story: Script }> = ({
       `音声の一覧にある場面 ${timing.id} が台本にありません。gen_voice.py を実行し直してください`,
     );
   }
-  const Body = KINDS[scene.kind];
+  const Body = kindComponent(scene.kind);
   const at = timing.lines.map((l) => l.from / fps);
   return (
     <AbsoluteFill style={{ fontFamily }}>

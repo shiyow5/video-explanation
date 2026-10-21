@@ -15,9 +15,19 @@ export type Item = {
   chosen?: boolean;
   date?: string;
   who?: string;
+  // アイコン（Lucide の名前か custom:<名前>）と、その動き
+  icon?: string;
+  motion?: "draw" | "pop" | "pulse" | "spin" | "bounce" | "none";
+  // diagram: 何列目に置くか（0 から）と、線でつなぐ先の項目の番号
+  g?: number;
+  to?: number[];
+  // timeline: 期間（YYYY-MM）と、その時点ではまだ予定だったか
+  start?: string;
+  end?: string;
+  plan?: boolean;
 };
 
-export type Kind =
+export type BasicKind =
   | "cover"
   | "chapter"
   | "bullets"
@@ -26,6 +36,11 @@ export type Kind =
   | "flow"
   | "decision"
   | "docs";
+
+export type ChartKind = "ratio" | "compare" | "diagram" | "timeline" | "icons";
+
+// custom:<名前> は src/custom/index.ts に登録した、案件ごとの専用の場面
+export type Kind = BasicKind | ChartKind | `custom:${string}`;
 
 export type SceneDef = {
   id: string;
@@ -53,6 +68,11 @@ export type SceneDef = {
   reason?: string;
   by?: string;
   rl?: number;
+  // compare: rl の文で押すスタンプの文字（「ほぼ変化なし」など）
+  stamp?: string;
+  // timeline: 横軸の始まりと終わり（YYYY-MM）
+  from?: string;
+  to?: string;
   lines: { text: string; say?: string }[];
 };
 

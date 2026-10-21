@@ -29,7 +29,16 @@
 | lines | 読み上げる文。`text`が字幕、`say`があれば読みはそちらを使う。1文80字まで |
 | items | 画面の項目。`l`はその項目を出す文の番号（linesの添字） |
 
-## 8種類の場面
+## 項目（items）に共通の欄
+
+| 欄 | 内容 |
+|---|---|
+| l | その項目を出す文の番号 |
+| c | 色（`dark` `blue` `orange` `purple` `green` `red` `gray`） |
+| icon | アイコンの名前（Lucideの表記、または`custom:<名前>`）。探し方と作り方は`diagrams-and-icons.md` |
+| motion | アイコンの動き（`draw` `pop` `pulse` `spin` `bounce` `none`。既定は`draw`） |
+
+## 13種類の場面と専用の場面
 
 | kind | 使う欄 | 項目数の上限 | 使いどころ |
 |---|---|---|---|
@@ -41,6 +50,12 @@
 | flow | items[].t/s | 4 | 処理の流れ。箱から箱へ点が動く |
 | decision | question, items[].t/s/chosen, reason, by, rl | 5 | 判断。問い→候補→採用の印→理由と決めた主体。rlは理由を読む文の番号で、その文で採用の印が出る |
 | docs | items[].date/t/who/s | 5 | 成果物の年表。whoで色が変わる |
+| diagram | items[].t/s/g/to/icon | 12（1列4個） | フロー図・構成図。gは列（0〜3）、toはつなぎ先の項目の番号 |
+| ratio | items[].v（0〜100）/d/suf/label/s/c | 3 | 割合の円。円が満ちて数字が数え上がる |
+| compare | items（前・後の2つ）[].label/s/v/d/suf/icon, stamp, rl | 2 | 前後の比較。後の棒が前の長さから変わり、rlの文でstampを押す |
+| timeline | from, to, items[].t/start/end/plan/s/icon | 6 | 期間の帯（YYYY-MM）。planはその時点ではまだ予定の帯（斜線）。asofの位置に「この時点」の線 |
+| icons | items[].icon/t/s/c/motion | 6 | 人・道具・概念の紹介。大きなアイコンが描かれる |
+| custom:<名前> | 部品しだい | 部品しだい | `src/custom/`に作った専用の場面。作り方は`custom-scenes.md` |
 
 ## 書き方の決まり
 
@@ -49,4 +64,6 @@
 - 英字の略語は`scripts/readings.json`に読みを足すか、その文に`say`を書く。
 - decisionで資料に理由や主体が無いときは、`reason`や`by`に「記録なし」と書く。空にしない。
 - 1つの場面に詰め込みすぎない。項目が上限を超えるときは場面を分ける。
+- 文字の箇条（bullets）を続けない。流れ・割合・前後・期間・役割は、それぞれの図の場面で見せる。
+- timelineの帯は、その場面のasofより後まで伸ばさない（その時点の予定ならplanにする。点検でエラーになる）。
 - 短編はおよそ10場面（約3分）、長編は章ごとに10〜20場面（40分前後でも可）が目安。

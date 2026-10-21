@@ -6,54 +6,12 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { Bar, Card, Counter, Pop, SceneTitle, Slide, useEnter } from "./parts";
+import { Icon, IconBadge } from "./icons";
+import { Area, KindProps, Title, useLineIndex } from "./layout";
+import { Bar, Card, Counter, Pop, Slide, useEnter } from "./parts";
 import { C, colorOf } from "./theme";
-import { Kind, SceneDef, Script } from "./types";
-
-// at[i] は i 番目の文が始まる秒（シーンの頭から）
-export type KindProps = { scene: SceneDef; at: number[]; story: Script };
-
-// 今読み上げている文の番号
-const useLineIndex = (at: number[]) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const t = frame / fps;
-  let idx = 0;
-  at.forEach((s, i) => {
-    if (t >= s - 0.1) idx = i;
-  });
-  return idx;
-};
-
-// 内容を置く領域（見出しの下から字幕の上まで）
-const Area: React.FC<{
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}> = ({ children, style }) => (
-  <div
-    style={{
-      position: "absolute",
-      left: 120,
-      right: 120,
-      top: 355,
-      height: 445,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
-
-const Title: React.FC<{ scene: SceneDef }> = ({ scene }) => (
-  <SceneTitle label={scene.label} owner={scene.owner} title={scene.title} />
-);
-
-// 作成者・決めた主体の色。「A・B」は先頭の A の色
-const whoColor = (story: Script, who?: string) => {
-  if (!who) return C.sub;
-  const name = story.actors?.[who.split(/[・／]/)[0]];
-  return name ? colorOf(name) : C.sub;
-};
+import { Decision, Docs } from "./history";
+import { BasicKind } from "./types";
 
 // 小さな資料の絵（表紙用）
 const MiniDoc: React.FC<{ tint: string }> = ({ tint }) => (
@@ -235,17 +193,32 @@ export const Chapter: React.FC<KindProps> = ({ scene }) => {
           <div style={{ fontSize: 100, fontWeight: 800, color: C.ink }}>
             {scene.title}
           </div>
+          {/* 題名の下に伸びる線（読み上げの間も動きを続ける） */}
+          <div
+            style={{
+              height: 10,
+              borderRadius: 5,
+              background: C.accent,
+              width: `${interpolate(frame, [0.6 * fps, 2.2 * fps], [0, 100], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+                easing: Easing.out(Easing.cubic),
+              })}%`,
+            }}
+          />
           {scene.period ? (
-            <div
-              style={{
-                fontSize: 44,
-                fontWeight: 800,
-                color: C.sub,
-                marginTop: 8,
-              }}
-            >
-              {scene.period}
-            </div>
+            <Slide delay={0.9} from={-40}>
+              <div
+                style={{
+                  fontSize: 44,
+                  fontWeight: 800,
+                  color: C.sub,
+                  marginTop: 12,
+                }}
+              >
+                {scene.period}
+              </div>
+            </Slide>
           ) : null}
         </div>
       </div>
@@ -296,23 +269,32 @@ export const Bullets: React.FC<KindProps> = ({ scene, at, story }) => {
                   scale: active ? "1.015" : "1",
                 }}
               >
-                <div
-                  style={{
-                    flex: "0 0 auto",
-                    width: 62,
-                    height: 62,
-                    borderRadius: "50%",
-                    background: color,
-                    color: "#fff",
-                    fontSize: 34,
-                    fontWeight: 800,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {i + 1}
-                </div>
+                {it.icon ? (
+                  <IconBadge
+                    name={it.icon}
+                    background={color}
+                    delay={(at[it.l] ?? 0) + 0.35 + i * 0.12}
+                    motion={it.motion}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      flex: "0 0 auto",
+                      width: 62,
+                      height: 62,
+                      borderRadius: "50%",
+                      background: color,
+                      color: "#fff",
+                      fontSize: 34,
+                      fontWeight: 800,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {i + 1}
+                  </div>
+                )}
                 <div
                   style={{
                     fontSize: 36,
@@ -366,6 +348,11 @@ export const Stats: React.FC<KindProps> = ({ scene, at }) => {
                 accent={it.l === now ? color : "#e4dccd"}
                 style={{ textAlign: "center", padding: "36px 26px" }}
               >
+                {it.icon ? (
+                  <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                    <Icon name={it.icon} size={60} color={color} delay={delay + 0.1} motion={it.motion} />
+                  </div>
+                ) : null}
                 <div
                   style={{
                     color,
@@ -562,8 +549,14 @@ export const Flow: React.FC<KindProps> = ({ scene, at }) => {
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "center",
+                    alignItems: "center",
                   }}
                 >
+                  {it.icon ? (
+                    <div style={{ marginBottom: 10 }}>
+                      <Icon name={it.icon} size={64} color={colors[i % 4]} delay={delay + 0.1} motion={it.motion} />
+                    </div>
+                  ) : null}
                   <div
                     style={{
                       fontSize: 44,
@@ -594,268 +587,7 @@ export const Flow: React.FC<KindProps> = ({ scene, at }) => {
   );
 };
 
-// 判断の場面：問い → 候補が並ぶ → 選ばれた候補に印 → 理由と決めた主体
-export const Decision: React.FC<KindProps> = ({ scene, at, story }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const items = scene.items ?? [];
-  const pick = at[scene.rl ?? at.length - 1] ?? 0;
-  const decided = interpolate(frame, [pick * fps, (pick + 0.5) * fps], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.bezier(0.16, 1, 0.3, 1),
-  });
-  const n = items.length;
-  return (
-    <AbsoluteFill>
-      <Title scene={scene} />
-      <Area>
-        <Slide delay={0.25}>
-          <div
-            style={{
-              display: "inline-block",
-              fontSize: 32,
-              fontWeight: 800,
-              color: C.ink,
-              background: "#fff3d6",
-              border: `4px solid ${C.yellow}`,
-              borderRadius: 20,
-              padding: "8px 26px",
-            }}
-          >
-            問い：{scene.question}
-          </div>
-        </Slide>
-        <div
-          style={{
-            display: "flex",
-            gap: 22,
-            marginTop: 26,
-            alignItems: "stretch",
-          }}
-        >
-          {items.map((it, i) => {
-            const chosen = Boolean(it.chosen);
-            return (
-              <Pop
-                key={i}
-                delay={(at[it.l] ?? 0) + 0.2 + i * 0.18}
-                style={{ flex: 1, position: "relative" }}
-              >
-                <div
-                  style={{
-                    height: n > 4 ? 200 : 190,
-                    background: C.card,
-                    borderRadius: 24,
-                    border: `5px solid ${chosen && decided > 0.5 ? C.accent : C.muted}`,
-                    boxShadow: "0 10px 0 rgba(0,0,0,0.07)",
-                    padding: "18px 18px",
-                    textAlign: "center",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    opacity: chosen
-                      ? 1
-                      : interpolate(decided, [0, 1], [1, 0.45]),
-                    scale: chosen
-                      ? String(interpolate(decided, [0, 1], [1, 1.05]))
-                      : "1",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: n > 4 ? 30 : 34,
-                      fontWeight: 800,
-                      color: C.ink,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {it.t}
-                  </div>
-                  {it.s ? (
-                    <div
-                      style={{
-                        fontSize: n > 4 ? 24 : 27,
-                        fontWeight: 800,
-                        color: C.sub,
-                        marginTop: 10,
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {it.s}
-                    </div>
-                  ) : null}
-                </div>
-                {chosen ? (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: -22,
-                      right: -10,
-                      background: C.accent,
-                      color: "#fff",
-                      fontSize: 28,
-                      fontWeight: 800,
-                      padding: "4px 18px",
-                      borderRadius: 30,
-                      opacity: decided,
-                      scale: String(interpolate(decided, [0, 1], [2, 1])),
-                      rotate: `${interpolate(decided, [0, 1], [-25, 6])}deg`,
-                    }}
-                  >
-                    採用
-                  </div>
-                ) : null}
-              </Pop>
-            );
-          })}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 20,
-            marginTop: 28,
-            alignItems: "center",
-            opacity: decided,
-            translate: `0 ${interpolate(decided, [0, 1], [20, 0])}px`,
-          }}
-        >
-          {scene.by ? (
-            <div
-              style={{
-                flex: "0 0 auto",
-                background: whoColor(story, scene.by),
-                color: "#fff",
-                fontSize: 28,
-                fontWeight: 800,
-                padding: "8px 22px",
-                borderRadius: 30,
-              }}
-            >
-              決めた主体：{scene.by}
-            </div>
-          ) : null}
-          <div
-            style={{
-              fontSize: 30,
-              fontWeight: 800,
-              color: C.accentDark,
-              lineHeight: 1.35,
-            }}
-          >
-            理由：{scene.reason}
-          </div>
-        </div>
-      </Area>
-    </AbsoluteFill>
-  );
-};
-
-// 成果物の年表：縦の線が伸び、日付・名前・作成者が順に出る
-export const Docs: React.FC<KindProps> = ({ scene, at, story }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const items = scene.items ?? [];
-  const n = items.length;
-  const rowH = n > 4 ? 88 : 104;
-  const grow = interpolate(frame, [0.2 * fps, 1.2 * fps], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  return (
-    <AbsoluteFill>
-      <Title scene={scene} />
-      <Area>
-        <div
-          style={{
-            position: "absolute",
-            left: 196,
-            top: 20,
-            width: 8,
-            height: grow * (n * rowH - 30),
-            background: C.muted,
-            borderRadius: 4,
-          }}
-        />
-        {items.map((it, i) => (
-          <Slide
-            key={i}
-            delay={(at[it.l] ?? 0) + 0.2 + i * 0.25}
-            from={-40}
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              top: i * rowH,
-              height: rowH,
-              display: "flex",
-              alignItems: "center",
-              gap: 26,
-            }}
-          >
-            <div
-              style={{
-                width: 170,
-                textAlign: "right",
-                fontSize: 32,
-                fontWeight: 800,
-                color: C.sub,
-              }}
-            >
-              {it.date}
-            </div>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: "50%",
-                background: whoColor(story, it.who),
-                border: "5px solid #fff",
-                boxShadow: `0 0 0 3px ${C.muted}`,
-              }}
-            />
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                <div style={{ fontSize: 34, fontWeight: 800, color: C.ink }}>
-                  {it.t}
-                </div>
-                {it.who ? (
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 800,
-                      color: "#fff",
-                      background: whoColor(story, it.who),
-                      padding: "2px 14px",
-                      borderRadius: 20,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {it.who}
-                  </div>
-                ) : null}
-              </div>
-              {it.s ? (
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 800,
-                    color: C.sub,
-                    marginTop: 4,
-                  }}
-                >
-                  {it.s}
-                </div>
-              ) : null}
-            </div>
-          </Slide>
-        ))}
-      </Area>
-    </AbsoluteFill>
-  );
-};
-
-export const KINDS: Record<Kind, React.FC<KindProps>> = {
+export const BASIC_KINDS: Record<BasicKind, React.FC<KindProps>> = {
   cover: Cover,
   chapter: Chapter,
   bullets: Bullets,

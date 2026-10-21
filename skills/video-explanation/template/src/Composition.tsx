@@ -1,4 +1,5 @@
 import { Composition } from "remotion";
+import { IconPreview } from "./IconPreview";
 import { Story, storyFrames } from "./Story";
 import { STORIES } from "./stories";
 import { FPS, HEIGHT, WIDTH } from "./theme";
@@ -18,6 +19,15 @@ export const MyComposition = () => {
           height={HEIGHT}
         />
       ))}
+      <Composition
+        id="IconPreview"
+        component={IconPreview}
+        defaultProps={{ names: ["database", "file-text", "custom:report"] }}
+        durationInFrames={1}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
     </>
   );
 };

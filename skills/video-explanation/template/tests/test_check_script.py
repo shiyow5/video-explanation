@@ -142,3 +142,90 @@ def test_numbers_without_source_is_warning():
     s = base(kind="stats", items=[{"v": 12, "label": "件数", "l": 0}])
     s.pop("source")
     assert any("出典" in i.message for i in check(script(s), READINGS))
+
+
+# ---------- 図解の場面とアイコン
+
+ICONS = ({"database", "file-text", "users", "bot", "smile"}, {"report"})
+
+
+def chart(**over):
+    s = base(**over)
+    s.setdefault("source", "2025年4月の資料")
+    return s
+
+
+def test_ratio_value_must_be_0_to_100():
+    s = chart(kind="ratio", items=[{"v": 120, "label": "割合", "l": 0}])
+    assert any("0〜100" in i.message for i in errors(check(script(s), READINGS)))
+
+
+def test_compare_needs_exactly_two_items():
+    s = chart(kind="compare", items=[{"v": 1, "label": "前", "l": 0}])
+    assert any("2つ" in i.message for i in errors(check(script(s), READINGS)))
+
+
+def test_diagram_edge_out_of_range_is_error():
+    s = chart(kind="diagram", items=[{"t": "A", "g": 0, "to": [5], "l": 0}, {"t": "B", "g": 1, "l": 0}])
+    assert any("to" in i.message for i in errors(check(script(s), READINGS)))
+
+
+def test_diagram_valid_passes():
+    s = chart(kind="diagram", items=[{"t": "A", "g": 0, "to": [1], "l": 0}, {"t": "B", "g": 1, "l": 0}])
+    assert errors(check(script(s), READINGS)) == []
+
+
+def test_timeline_band_past_asof_is_future_info():
+    s = chart(
+        kind="timeline",
+        **{"from": "2025-01", "to": "2025-12"},
+        items=[{"t": "試作", "start": "2025-03", "end": "2025-08", "l": 0}],
+    )
+    assert any("未来" in i.message for i in errors(check(script(s), READINGS)))
+
+
+def test_timeline_plan_band_may_extend_past_asof():
+    s = chart(
+        kind="timeline",
+        **{"from": "2025-01", "to": "2025-12"},
+        items=[{"t": "試作", "start": "2025-03", "end": "2025-08", "plan": True, "l": 0}],
+    )
+    assert errors(check(script(s), READINGS)) == []
+
+
+def test_timeline_needs_axis():
+    s = chart(kind="timeline", items=[{"t": "試作", "start": "2025-03", "end": "2025-04", "l": 0}])
+    assert any("from" in i.message for i in errors(check(script(s), READINGS)))
+
+
+def test_unknown_icon_is_error():
+    s = chart(items=[{"t": "項目", "icon": "no-such-icon", "l": 0}])
+    assert any("no-such-icon" in i.message for i in errors(check(script(s), READINGS, icons=ICONS)))
+
+
+def test_known_and_custom_icons_pass():
+    s = chart(items=[{"t": "A", "icon": "database", "l": 0}, {"t": "B", "icon": "custom:report", "l": 0}])
+    assert errors(check(script(s), READINGS, icons=ICONS)) == []
+
+
+def test_character_icon_is_error():
+    s = chart(items=[{"t": "A", "icon": "bot", "l": 0}])
+    assert any("キャラクター" in i.message for i in errors(check(script(s), READINGS, icons=ICONS)))
+
+
+def test_icons_kind_requires_icon():
+    s = chart(kind="icons", items=[{"t": "A", "l": 0}])
+    assert any("icon" in i.message for i in errors(check(script(s), READINGS)))
+
+
+def test_bad_motion_is_error():
+    s = chart(items=[{"t": "A", "icon": "database", "motion": "fly", "l": 0}])
+    assert any("motion" in i.message for i in errors(check(script(s), READINGS, icons=ICONS)))
+
+
+def test_custom_kind_must_be_registered():
+    s = chart(kind="custom:Nothing")
+    issues = check(script(s), READINGS, custom_kinds={"UnitGrid"})
+    assert any("custom:Nothing" in i.message for i in errors(issues))
+    ok = chart(kind="custom:UnitGrid", items=[{"v": 3, "label": "約3割", "l": 0}])
+    assert errors(check(script(ok), READINGS, custom_kinds={"UnitGrid"})) == []

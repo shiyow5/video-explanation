@@ -1,5 +1,5 @@
 {
-  "name": "project-story-video",
+  "name": "video-explanation",
   "version": "1.0.0",
   "description": "台本 JSON から経緯・進捗の解説動画を作る Remotion プロジェクト",
   "license": "UNLICENSED",
@@ -11,6 +11,7 @@
     "@remotion/cli": "4.0.537",
     "@remotion/google-fonts": "4.0.537",
     "@remotion/media": "4.0.537",
+    "lucide-react": "1.50.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "4.0.537"

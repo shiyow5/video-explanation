@@ -21,9 +21,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gen_voice import DEFAULT_READINGS, load_readings, to_say  # noqa: E402
 
-KINDS = {"cover", "chapter", "bullets", "stats", "bars", "flow", "decision", "docs"}
-# 1画面に収まる項目数の目安（kinds.tsx の配置から）
-MAX_ITEMS = {"bullets": 5, "stats": 4, "bars": 7, "flow": 4, "decision": 5, "docs": 5}
+ROOT = Path(__file__).resolve().parent.parent
+KINDS = {
+    "cover", "chapter", "bullets", "stats", "bars", "flow", "decision", "docs",
+    "ratio", "compare", "diagram", "timeline", "icons",
+}
+# 1画面に収まる項目数の目安（kinds.tsx・charts.tsx の配置から）
+MAX_ITEMS = {
+    "bullets": 5, "stats": 4, "bars": 7, "flow": 4, "decision": 5, "docs": 5,
+    "ratio": 3, "compare": 2, "diagram": 12, "timeline": 6, "icons": 6,
+}
+MOTIONS = {"draw", "pop", "pulse", "spin", "bounce", "none"}
+# 顔や生き物に見えるアイコン（キャラクターの絵を出さない、という決まりのため）
+CHARACTER_ICON = re.compile(
+    r"^(bot|smile|laugh|frown|meh|angry|annoyed|ghost|skull|baby|cat|dog|rabbit|squirrel|"
+    r"bird|fish|panda|turtle|snail|rat|origami|user-round|person-standing)"
+)
 TITLE_MAX = 22
 CAPTION_MAX = 80
 ASOF = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
@@ -58,8 +71,8 @@ def check_shape(sc: dict, sid: str, n_stages: int) -> list[Issue]:
     issues = []
     err = lambda m: issues.append(Issue("error", sid, m))  # noqa: E731
     kind = sc.get("kind")
-    if kind not in KINDS:
-        err(f"kind={kind!r} は使えません（{', '.join(sorted(KINDS))}）")
+    if kind not in KINDS and not str(kind).startswith("custom:"):
+        err(f"kind={kind!r} は使えません（{', '.join(sorted(KINDS))}、または custom:<名前>）")
     if not sc.get("title"):
         err("title がありません")
     lines = sc.get("lines") or []
@@ -87,7 +100,93 @@ def check_shape(sc: dict, sid: str, n_stages: int) -> list[Issue]:
                     err(f"docs の items[{i}] に {key} がありません（作成者が不明なら「不明」と書く）")
     if kind == "bars" and not (isinstance(sc.get("max"), (int, float)) and sc["max"] > 0):
         err("bars には正の max が必要です")
+    issues += check_charts(sc, sid, kind, items)
     return issues
+
+
+def check_charts(sc: dict, sid: str, kind: str, items: list[dict]) -> list[Issue]:
+    issues = []
+    err = lambda m: issues.append(Issue("error", sid, m))  # noqa: E731
+    if kind == "ratio":
+        for i, it in enumerate(items):
+            if not isinstance(it.get("v"), (int, float)) or not 0 <= it["v"] <= 100:
+                err(f"ratio の items[{i}] の v は 0〜100 にしてください")
+    if kind == "compare":
+        if len(items) != 2 or not all(isinstance(it.get("v"), (int, float)) for it in items):
+            err("compare は v のある項目をちょうど2つ（前・後）にしてください")
+    if kind == "diagram":
+        for i, it in enumerate(items):
+            g = it.get("g", 0)
+            if not isinstance(g, int) or not 0 <= g <= 3:
+                err(f"diagram の items[{i}] の g（列）は 0〜3 にしてください")
+            for j in it.get("to") or []:
+                if not isinstance(j, int) or not 0 <= j < len(items) or j == i:
+                    err(f"diagram の items[{i}] の to={j} がつなぎ先の範囲外です")
+        per_col: dict[int, int] = {}
+        for it in items:
+            per_col[it.get("g", 0)] = per_col.get(it.get("g", 0), 0) + 1
+        if per_col and max(per_col.values()) > 4:
+            issues.append(Issue("warn", sid, "diagram の1列に箱が5個以上あり、小さくなりすぎます"))
+    if kind == "timeline":
+        lo, hi = sc.get("from"), sc.get("to")
+        if not (isinstance(lo, str) and ASOF.match(lo) and isinstance(hi, str) and ASOF.match(hi) and lo <= hi):
+            err("timeline には from・to（YYYY-MM、from ≦ to）が必要です")
+            lo = hi = None
+        for i, it in enumerate(items):
+            a, b = it.get("start"), it.get("end")
+            if not (isinstance(a, str) and ASOF.match(a) and isinstance(b, str) and ASOF.match(b) and a <= b):
+                err(f"timeline の items[{i}] には start・end（YYYY-MM、start ≦ end）が必要です")
+            elif lo and hi and not (lo <= a and b <= hi):
+                issues.append(Issue("warn", sid, f"timeline の items[{i}] が横軸（{lo}〜{hi}）の外にはみ出しています"))
+    if kind == "icons":
+        for i, it in enumerate(items):
+            if not it.get("icon"):
+                err(f"icons の items[{i}] に icon がありません")
+    return issues
+
+
+def check_icons(sc: dict, sid: str, icons: tuple[set[str] | None, set[str]] | None) -> list[Issue]:
+    issues = []
+    for i, it in enumerate(sc.get("items") or []):
+        name = it.get("icon")
+        motion = it.get("motion")
+        if motion is not None and motion not in MOTIONS:
+            issues.append(Issue("error", sid, f"items[{i}] の motion={motion!r} は使えません（{', '.join(sorted(MOTIONS))}）"))
+        if not name:
+            continue
+        if CHARACTER_ICON.match(name):
+            issues.append(Issue("error", sid, f"キャラクターに見えるアイコン「{name}」は使いません"))
+        if icons is None:
+            continue
+        lucide, custom = icons
+        if name.startswith("custom:"):
+            if name[7:] not in custom:
+                issues.append(Issue("error", sid, f"自作アイコン「{name}」が src/custom-icons.tsx にありません"))
+        elif lucide is None:
+            issues.append(Issue("warn", sid, f"アイコン「{name}」を確かめられません（npm i をしてから点検する）"))
+        elif name not in lucide:
+            issues.append(Issue("error", sid, f"アイコン「{name}」は Lucide にありません（https://lucide.dev/icons/ で名前を確かめる）"))
+    return issues
+
+
+def known_icons(root: Path = ROOT) -> tuple[set[str] | None, set[str]]:
+    """Lucide のアイコン名（node_modules から）と、自作アイコンの名前（custom-icons.tsx から）。"""
+    d = root / "node_modules" / "lucide-react" / "dist" / "esm" / "icons"
+    lucide = {p.name[:-4] for p in d.glob("*.mjs")} - {"index"} if d.is_dir() else None
+    src = root / "src" / "custom-icons.tsx"
+    custom: set[str] = set()
+    if src.exists():
+        block = src.read_text(encoding="utf-8").split("CUSTOM_ICONS", 2)[-1]
+        custom = set(re.findall(r"^\s+\"?([\w-]+)\"?\s*:", block, re.M))
+    return lucide, custom
+
+
+def known_custom_kinds(root: Path = ROOT) -> set[str]:
+    src = root / "src" / "custom" / "index.ts"
+    if not src.exists():
+        return set()
+    block = src.read_text(encoding="utf-8").split("CUSTOM_KINDS", 1)[-1]
+    return set(re.findall(r"^\s+(\w+)\s*[,:]", block, re.M))
 
 
 def check_layout(sc: dict, sid: str) -> list[Issue]:
@@ -128,6 +227,14 @@ def check_time(sc: dict, sid: str, prev_asof: str | None) -> tuple[list[Issue], 
             ym = f"{int(y):04d}-{int(m):02d}"
             if ym > asof:
                 issues.append(Issue("error", sid, f"未来の情報: asof={asof} の場面に「{y}年{m}月」があります: {t[:30]}"))
+    if sc.get("kind") == "timeline":
+        for i, it in enumerate(sc.get("items") or []):
+            end = it.get("end")
+            if isinstance(end, str) and end > asof and not it.get("plan"):
+                issues.append(Issue(
+                    "error", sid,
+                    f"未来の情報: timeline の items[{i}] が asof={asof} より後（{end}）まで伸びています（その時点の予定なら plan: true）",
+                ))
     return issues, asof
 
 
@@ -150,7 +257,14 @@ def check_speech(sc: dict, sid: str, readings: list[tuple[str, str]], banned: li
     return issues
 
 
-def check(script: dict, readings: list[tuple[str, str]], banned: list[str] | None = None) -> list[Issue]:
+def check(
+    script: dict,
+    readings: list[tuple[str, str]],
+    banned: list[str] | None = None,
+    icons: tuple[set[str] | None, set[str]] | None = None,
+    custom_kinds: set[str] | None = None,
+) -> list[Issue]:
+    """icons と custom_kinds を渡すと、アイコン名と専用の場面が実在するかも確かめる。"""
     banned = banned or []
     issues: list[Issue] = []
     for key in ("speaker", "speedScale", "stages", "scenes"):
@@ -170,6 +284,10 @@ def check(script: dict, readings: list[tuple[str, str]], banned: list[str] | Non
         time_issues, prev_asof = check_time(sc, sid, prev_asof)
         issues += time_issues
         issues += check_speech(sc, sid, readings, banned)
+        issues += check_icons(sc, sid, icons)
+        kind = str(sc.get("kind"))
+        if custom_kinds is not None and kind.startswith("custom:") and kind[7:] not in custom_kinds:
+            issues.append(Issue("error", sid, f"{kind} が src/custom/index.ts に登録されていません"))
         stage = sc.get("stage")
         if isinstance(stage, int) and stage > 0:
             if stage < prev_stage and not sc.get("retrospective"):
@@ -188,7 +306,9 @@ def main() -> None:
     banned = []
     if args.banned:
         banned = [w.strip() for w in Path(args.banned).read_text(encoding="utf-8").splitlines() if w.strip()]
-    issues = check(script, load_readings(Path(args.readings)), banned)
+    issues = check(
+        script, load_readings(Path(args.readings)), banned, icons=known_icons(), custom_kinds=known_custom_kinds()
+    )
     for i in issues:
         print(i)
     n_err = sum(i.level == "error" for i in issues)
