@@ -153,12 +153,13 @@ const Pill: React.FC<{ text: string; background: string }> = ({
   </div>
 );
 
-// シーンの見出し（時期のラベル＋担当者＋タイトル）
+// シーンの見出し（時期のラベル＋担当者＋見方の札＋タイトル）
 export const SceneTitle: React.FC<{
   label?: string;
   owner?: string;
+  badge?: string;
   title: string;
-}> = ({ label, owner, title }) => {
+}> = ({ label, owner, badge, title }) => {
   const p = useEnter(0.1, 15);
   return (
     <div
@@ -173,6 +174,7 @@ export const SceneTitle: React.FC<{
       <div style={{ display: "flex", gap: 14 }}>
         {label ? <Pill text={label} background={C.accentDark} /> : null}
         {owner ? <Pill text={`担当：${owner}`} background={C.purple} /> : null}
+        {badge ? <Pill text={badge} background={C.orange} /> : null}
       </div>
       <div
         style={{
@@ -228,11 +230,13 @@ export const Background: React.FC = () => {
   );
 };
 
-// 上部の進み具合。まだ来ていない段階は名前を伏せる（未来の情報を先に出さない）
-export const Progress: React.FC<{ stages: string[]; stage: number }> = ({
-  stages,
-  stage,
-}) => (
+// 上部の進み具合。まだ来ていない段階は名前を伏せる（未来の情報を先に出さない）。
+// reveal のとき（論文の解説など、時間の順でない動画）は全段階の名前を見せる
+export const Progress: React.FC<{
+  stages: string[];
+  stage: number;
+  reveal?: boolean;
+}> = ({ stages, stage, reveal = false }) => (
   <div
     style={{
       position: "absolute",
@@ -247,7 +251,7 @@ export const Progress: React.FC<{ stages: string[]; stage: number }> = ({
     {stages.map((s, i) => {
       const active = i + 1 === stage;
       const done = i + 1 < stage;
-      const future = i + 1 > stage;
+      const future = i + 1 > stage && !reveal;
       return (
         <div
           key={i}

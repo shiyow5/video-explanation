@@ -45,7 +45,12 @@ export const Area: React.FC<{
 );
 
 export const Title: React.FC<{ scene: SceneDef }> = ({ scene }) => (
-  <SceneTitle label={scene.label} owner={scene.owner} title={scene.title} />
+  <SceneTitle
+    label={scene.label}
+    owner={scene.owner}
+    badge={scene.interpretation ? "解説者の見方" : undefined}
+    title={scene.title}
+  />
 );
 
 // 作成者・決めた主体の色。「A・B」は先頭の A の色

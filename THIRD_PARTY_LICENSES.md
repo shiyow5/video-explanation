@@ -43,6 +43,7 @@ LGPL-3.0と、別の許諾（作者に求めて得るもの）のデュアルラ
 | ソフト | 用途 | ライセンス | 一次情報 |
 |---|---|---|---|
 | lucide-react 1.50.0 | アイコン（台本の`icon`、`find_icon.py`で探す） | ISC（Copyright (c) 2026 Lucide Icons and Contributors）。Featherから受け継いだ一部のアイコンはMIT（Copyright (c) 2013-present Cole Bemis） | https://github.com/lucide-icons/lucide/blob/main/LICENSE |
+| KaTeX 0.18.11 | 数式の場面（equation）の描画 | MIT（Copyright (c) 2013-2020 Khan Academy and other contributors） | https://github.com/KaTeX/KaTeX/blob/main/LICENSE |
 | React / react-dom 19 | 画面の部品 | MIT | https://github.com/facebook/react/blob/main/LICENSE |
 | M PLUS Rounded 1c | 字幕と見出しのフォント（@remotion/google-fontsで読み込む） | SIL Open Font License（Copyright 2016 The Rounded M+ Project Authors） | https://github.com/google/fonts/blob/main/ofl/mplusrounded1c/METADATA.pb |
 | numpy | 音声の音量の調整、BGMの合成 | BSD-3-Clause | https://github.com/numpy/numpy/blob/main/LICENSE.txt |
@@ -57,4 +58,4 @@ LGPL-3.0と、別の許諾（作者に求めて得るもの）のデュアルラ
 
 - BGMは`template/scripts/make_bgm.py`がプログラムで合成します。外部の音源や素材は使っていません。
 - 表紙の資料の絵などの図形と、`src/custom-icons.tsx`の自作アイコンは、コードで描いています。画像ファイルは使っていません。
-- これらと、スキルの文書・コード・テストは、[LICENSE](LICENSE)（MIT）で公開しています。MIT が及ぶのはこのリポジトリで書いたファイルだけで、上の依存物には及びません。
+- これらと、スキルの文書・コード・テストは、[LICENSE](LICENSE)（MIT）で公開しています。MITが及ぶのはこのリポジトリで書いたファイルだけで、上の依存物には及びません。

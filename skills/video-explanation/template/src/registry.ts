@@ -4,11 +4,13 @@ import { CHART_KINDS } from "./charts";
 import { CUSTOM_KINDS } from "./custom";
 import { BASIC_KINDS } from "./kinds";
 import { KindProps } from "./layout";
+import { PAPER_KINDS } from "./paper";
 import { Kind } from "./types";
 
 const BUILT_IN: Record<string, React.FC<KindProps>> = {
   ...BASIC_KINDS,
   ...CHART_KINDS,
+  ...PAPER_KINDS,
 };
 
 export const kindComponent = (kind: Kind): React.FC<KindProps> => {

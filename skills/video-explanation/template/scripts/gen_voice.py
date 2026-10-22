@@ -34,6 +34,13 @@ def load_readings(path: Path) -> list[tuple[str, str]]:
     return sorted(((a, b) for a, b in pairs), key=lambda p: -len(p[0]))
 
 
+def merge_readings(base: list[tuple[str, str]], extra: list | None) -> list[tuple[str, str]]:
+    """台本の readings（その動画だけの固有名詞の読みなど）を足し、長い語から順に並べ直す。"""
+    if not extra:
+        return base
+    return sorted([*base, *((a, b) for a, b in extra)], key=lambda p: -len(p[0]))
+
+
 def to_say(text: str, readings: list[tuple[str, str]]) -> str:
     s = text
     for a, b in readings:
@@ -102,6 +109,7 @@ def seconds_of(path: Path) -> float:
 def generate(script: Path, manifest: Path, voice_dir: str, readings: list[tuple[str, str]]) -> None:
     check_local(ENGINE)
     cfg = json.loads(script.read_text(encoding="utf-8"))
+    readings = merge_readings(readings, cfg.get("readings"))
     vdir = ROOT / "public" / voice_dir
     vdir.mkdir(parents=True, exist_ok=True)
     # 読みが前回と同じ文は合成し直さない（台本を直したときの時間を短くする）
@@ -140,6 +148,7 @@ def main() -> None:
     script = ROOT / args.script
     if args.dry:
         cfg = json.loads(script.read_text(encoding="utf-8"))
+        readings = merge_readings(readings, cfg.get("readings"))
         for sc in cfg["scenes"]:
             for ln in sc["lines"]:
                 print(sc["id"], "|", ln.get("say") or to_say(ln["text"], readings))

@@ -19,18 +19,28 @@ from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_voice import DEFAULT_READINGS, load_readings, to_say  # noqa: E402
+from check_paper import (  # noqa: E402
+    PAPER_KINDS,
+    PAPER_MAX_ITEMS,
+    check_paper_scene,
+    check_paper_script,
+    collect_tex,
+    katex_checker,
+    public_file_set,
+)
+from check_terms import check_terms  # noqa: E402
+from gen_voice import DEFAULT_READINGS, load_readings, merge_readings, to_say  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 KINDS = {
     "cover", "chapter", "bullets", "stats", "bars", "flow", "decision", "docs",
     "ratio", "compare", "diagram", "timeline", "icons",
-}
-# 1画面に収まる項目数の目安（kinds.tsx・charts.tsx の配置から）
+} | PAPER_KINDS
+# 1画面に収まる項目数の目安（kinds.tsx・charts.tsx・paper.tsx の配置から）
 MAX_ITEMS = {
     "bullets": 5, "stats": 4, "bars": 7, "flow": 4, "decision": 5, "docs": 5,
     "ratio": 3, "compare": 2, "diagram": 12, "timeline": 6, "icons": 6,
-}
+} | PAPER_MAX_ITEMS
 MOTIONS = {"draw", "pop", "pulse", "spin", "bounce", "none"}
 # 顔や生き物に見えるアイコン（キャラクターの絵を出さない、という決まりのため）
 CHARACTER_ICON = re.compile(
@@ -263,13 +273,20 @@ def check(
     banned: list[str] | None = None,
     icons: tuple[set[str] | None, set[str]] | None = None,
     custom_kinds: set[str] | None = None,
+    tex_ok=None,
+    public_files: set[str] | None = None,
 ) -> list[Issue]:
-    """icons と custom_kinds を渡すと、アイコン名と専用の場面が実在するかも確かめる。"""
+    """icons・custom_kinds・tex_ok・public_files を渡すと、アイコン名・専用の場面・数式・画像が
+    実在するか（書けるか）も確かめる。mode が paper なら時点（asof）の点検をしない。"""
     banned = banned or []
     issues: list[Issue] = []
+    mode = script.get("mode", "history")
     for key in ("speaker", "speedScale", "stages", "scenes"):
         if key not in script:
             issues.append(Issue("error", "(全体)", f"{key} がありません"))
+    issues += check_paper_script(script)
+    issues += check_terms(script, visible_texts)
+    readings = merge_readings(readings, script.get("readings"))
     stages = script.get("stages") or []
     seen: set[str] = set()
     prev_asof = None
@@ -281,8 +298,10 @@ def check(
         seen.add(sid)
         issues += check_shape(sc, sid, len(stages))
         issues += check_layout(sc, sid)
-        time_issues, prev_asof = check_time(sc, sid, prev_asof)
-        issues += time_issues
+        if mode != "paper":
+            time_issues, prev_asof = check_time(sc, sid, prev_asof)
+            issues += time_issues
+        issues += check_paper_scene(sc, sid, mode, tex_ok, public_files)
         issues += check_speech(sc, sid, readings, banned)
         issues += check_icons(sc, sid, icons)
         kind = str(sc.get("kind"))
@@ -307,7 +326,13 @@ def main() -> None:
     if args.banned:
         banned = [w.strip() for w in Path(args.banned).read_text(encoding="utf-8").splitlines() if w.strip()]
     issues = check(
-        script, load_readings(Path(args.readings)), banned, icons=known_icons(), custom_kinds=known_custom_kinds()
+        script,
+        load_readings(Path(args.readings)),
+        banned,
+        icons=known_icons(),
+        custom_kinds=known_custom_kinds(),
+        tex_ok=katex_checker(ROOT, collect_tex(script)),
+        public_files=public_file_set(ROOT),
     )
     for i in issues:
         print(i)

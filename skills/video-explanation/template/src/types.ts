@@ -25,6 +25,12 @@ export type Item = {
   start?: string;
   end?: string;
   plan?: boolean;
+  // equation: 説明する項（LaTeX）
+  tex?: string;
+  // table: 1行分のセル（columns と同じ数）
+  cells?: string[];
+  // figure: 注目する部分の枠（画像に対する割合 0〜100: [左, 上, 幅, 高さ]）
+  box?: [number, number, number, number];
 };
 
 export type BasicKind =
@@ -39,8 +45,11 @@ export type BasicKind =
 
 export type ChartKind = "ratio" | "compare" | "diagram" | "timeline" | "icons";
 
+// 論文の解説で使う場面
+export type PaperKind = "equation" | "table" | "figure";
+
 // custom:<名前> は src/custom/index.ts に登録した、案件ごとの専用の場面
-export type Kind = BasicKind | ChartKind | `custom:${string}`;
+export type Kind = BasicKind | ChartKind | PaperKind | `custom:${string}`;
 
 export type SceneDef = {
   id: string;
@@ -73,15 +82,40 @@ export type SceneDef = {
   // timeline: 横軸の始まりと終わり（YYYY-MM）
   from?: string;
   to?: string;
+  // equation: 式全体（LaTeX）
+  tex?: string;
+  // table: 列の見出し
+  columns?: string[];
+  // figure: public/ の中の画像、クレジット、ライセンス
+  image?: string;
+  credit?: string;
+  license?: string;
+  // 著者の主張ではなく、解説する側の解釈や見方の場面
+  interpretation?: boolean;
+  // この場面で初めて出る専門用語・固有名詞（glossary か names の名前）。画面に説明の札が出る
+  terms?: string[];
   lines: { text: string; say?: string }[];
 };
 
 export type Script = {
+  // history: 経緯・進捗（時間の順）。paper: 論文の解説
+  mode?: "history" | "paper";
+  // true なら上部の進み具合で、まだ来ていない段階の名前も見せる（paper では既定で見せる）
+  revealStages?: boolean;
+  // paper: 解説する論文の情報（点検で url を確かめる）
+  paper?: { title: string; authors: string; venue?: string; url: string };
   speaker: number;
   speedScale: number;
   stages: string[];
   // 作成者・決めた主体ごとの色の名前（theme.ts の COLORS のキー）
   actors?: Record<string, string>;
+  // 専門用語 → 短い説明。用語は置き換えずにそのまま使う
+  glossary?: Record<string, string>;
+  // 固有名詞（手法・モデル・データセットなどの名前）→ 何の名前か（what）と説明（desc）
+  names?: Record<string, { what: string; desc: string }>;
+  // この動画だけの読み替え（[元の語, 読み]）。固有名詞の読みなど
+  // （JSON から読むと組の長さが型に残らないので string[][] にしておく）
+  readings?: string[][];
   credits?: string[];
   scenes: SceneDef[];
 };

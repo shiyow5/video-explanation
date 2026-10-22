@@ -1,8 +1,8 @@
 # video-explanation
 
-プロジェクトの概要・進捗・これまでの経緯を、時間の順に追える解説動画にするClaude Codeのスキルです。台本をJSONで書くと、Remotionのひな形が場面を組み立てます。場面には、フロー図、割合の円、前後の比較、期間の帯、判断の候補と採用の印、成果物の年表、線を描くように現れるアイコンなどの動きが付きます。読み上げは手元で動かすVOICEVOX ENGINEで作り、BGMはプログラムで合成します。
+プロジェクトの概要・進捗・これまでの経緯や、論文の中身を、解説動画にするClaude Codeのスキルです。台本をJSONで書くと、Remotionのひな形が場面を組み立てます。場面には、フロー図、割合の円、前後の比較、期間の帯、判断の候補と採用の印、成果物の年表、線を描くように現れるアイコンなどの動きが付きます。読み上げは手元で動かすVOICEVOX ENGINEで作り、BGMはプログラムで合成します。
 
-A Claude Code skill that turns a project's history and progress into a narrated explainer video with animated infographics, flow diagrams and icons (Remotion + local VOICEVOX + synthesized BGM). Japanese only.
+A Claude Code skill that turns a project's history and progress, or a research paper, into a narrated explainer video with animated infographics, flow diagrams, equations and icons (Remotion + local VOICEVOX + synthesized BGM). Japanese only.
 
 ## 中身
 
@@ -37,11 +37,18 @@ bash scripts/setup_voicevox.sh start &                     # 127.0.0.1 だけで
 python3 scripts/gen_voice.py scripts/narration.json src/voice-manifest.json voice
 python3 scripts/make_bgm.py public/bgm.wav 220
 python3 scripts/motion_check.py ProjectStory src/voice-manifest.json out/check   # 全場面の動きを確かめる
+# 論文の見本: scripts/paper_sample.json → src/voice-manifest-paper.json、composition は PaperSample
 bash scripts/render.sh ProjectStory out/sample.mp4
 bash scripts/setup_voicevox.sh stop
 ```
 
 見本は15場面、約3分14秒の動画になります。
+
+## 2つの作り方
+
+台本の`mode`で切り替えます。`history`（既定）はプロジェクトの経緯を時間の順に、各場面の時点（`asof`）を守って見せます。`paper`は論文の解説で、落合式の6つの問い（どんなもの・どこがすごい・手法のキモ・どう検証・議論・次に読む）の順に、論文の節・式・表・図を出典に示します。著者の主張と解説者の見方は札で分けます。見本は`scripts/narration.json`（経緯、架空）と`scripts/paper_sample.json`（論文、架空）です。
+
+どちらでも、専門用語は言い換えずにそのまま使い、初めて出たところで説明の札を出します。固有名詞（手法・モデル・データセットなどの名前）は置き換えず、出てくるすべての文で「検索手法のQuickRank」のように何の名前かを添えます。台本の点検で、この決まりが守られているかを確かめます。
 
 ## 場面の種類
 
@@ -53,6 +60,7 @@ bash scripts/setup_voicevox.sh stop
 | 割合・前後の比較・期間 | ratio, compare, timeline |
 | 人・道具・概念の紹介（アイコン） | icons |
 | 判断・成果物の年表 | decision, docs |
+| 数式・結果の表・論文などの図 | equation, table, figure |
 | その案件だけの図 | custom:<名前>（`src/custom/`に作る） |
 
 アイコンはLucideの約1,900種から名前で選べます。合うものが無いときは、`src/custom-icons.tsx`に線で描いて足せます。どのアイコンにも、線を描く・ふわっと出る・脈打つ・回る・弾むのいずれかの動きを付けられます。
@@ -64,10 +72,12 @@ bash scripts/setup_voicevox.sh stop
 - その場面の時点（`asof`）より後の年月や期間の帯が出ていないか（未来の情報を先に出さない）
 - キャラクターの口調（「〜のだ」）や、顔・生き物に見えるアイコンが無いか
 - 判断の場面に、問い・理由・決めた主体・採用した候補があるか
+- 専門用語と固有名詞の初出に説明があるか、固有名詞に何の名前かが添えてあるか
+- 論文の解説で、出典（節・式・表・図）があるか、数式がKaTeXで書けるか、図のライセンスで転載してよいか
 - アイコンの名前と専用の場面が実在するか、図のつなぎ先が正しいか
 - 読み方の分からない英字や、分数に読まれる日付（「10/24」）が無いか、伏せる語が出ていないか
 - 項目の数や字幕の長さが画面に収まるか、数字のある場面に出典があるか
 
 ## ライセンス
 
-このリポジトリで書いたコードと文書は [MIT](LICENSE)です。Remotion、VOICEVOX ENGINE、音声ライブラリ「ずんだもん」、Lucide、フォントなどの依存物は、それぞれのライセンスと利用規約に従います。特に注意が要るのは2点で、Remotionは従業員4人以上の営利組織では会社ライセンスが必要になり、ずんだもんの声を使った動画には「VOICEVOX:ずんだもん」のクレジットが必要です。詳しくは [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)を読んでください。
+このリポジトリで書いたコードと文書は [MIT](LICENSE)です。Remotion、VOICEVOX ENGINE、音声ライブラリ「ずんだもん」、Lucide、KaTeX、フォントなどの依存物は、それぞれのライセンスと利用規約に従います。特に注意が要るのは2点で、Remotionは従業員4人以上の営利組織では会社ライセンスが必要になり、ずんだもんの声を使った動画には「VOICEVOX:ずんだもん」のクレジットが必要です。詳しくは [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)を読んでください。

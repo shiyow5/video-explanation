@@ -11,7 +11,13 @@
 | stages | 上部の進み具合に出す段階の名前。4〜6個 |
 | actors | 作成者・決めた主体ごとの色（`dark` `blue` `orange` `purple` `green` `red` `gray`） |
 | credits | 最後の場面に出すクレジット。「ナレーション：VOICEVOX:ずんだもん」は必須 |
-| scenes | 場面の並び（時間の順） |
+| scenes | 場面の並び（historyは時間の順） |
+| mode | `history`（経緯・既定）か`paper`（論文の解説）。paperでは時点の点検をせず、進み具合の名前をすべて見せる |
+| paper | paperのとき必須。`title`・`authors`・`url`（・`venue`） |
+| revealStages | trueなら、historyでも進み具合の名前をすべて見せる |
+| glossary | 専門用語 → 説明（40字まで）。`terms-and-names.md` |
+| names | 固有名詞 → `what`（何の名前か）と`desc`（説明） |
+| readings | その動画だけの読み（`[元の語, 読み]`の並び） |
 
 ## 場面に共通の欄
 
@@ -28,6 +34,8 @@
 | source | 右上に出す出典。数字や日付のある場面には必ず付ける |
 | lines | 読み上げる文。`text`が字幕、`say`があれば読みはそちらを使う。1文80字まで |
 | items | 画面の項目。`l`はその項目を出す文の番号（linesの添字） |
+| terms | この場面で初めて出る専門用語・固有名詞。字幕の上に説明の札が出る（2つまで） |
+| interpretation | trueなら著者の主張ではなく解説する側の見方。見出しに「解説者の見方」の札が出る |
 
 ## 項目（items）に共通の欄
 
@@ -38,7 +46,7 @@
 | icon | アイコンの名前（Lucideの表記、または`custom:<名前>`）。探し方と作り方は`diagrams-and-icons.md` |
 | motion | アイコンの動き（`draw` `pop` `pulse` `spin` `bounce` `none`。既定は`draw`） |
 
-## 13種類の場面と専用の場面
+## 16種類の場面と専用の場面
 
 | kind | 使う欄 | 項目数の上限 | 使いどころ |
 |---|---|---|---|
@@ -55,6 +63,9 @@
 | compare | items（前・後の2つ）[].label/s/v/d/suf/icon, stamp, rl | 2 | 前後の比較。後の棒が前の長さから変わり、rlの文でstampを押す |
 | timeline | from, to, items[].t/start/end/plan/s/icon | 6 | 期間の帯（YYYY-MM）。planはその時点ではまだ予定の帯（斜線）。asofの位置に「この時点」の線 |
 | icons | items[].icon/t/s/c/motion | 6 | 人・道具・概念の紹介。大きなアイコンが描かれる |
+| equation | tex, items[].tex/t | 4 | 数式。式が左から現れ、各項（LaTeX）が説明つきで出る。KaTeXで描く |
+| table | columns, items[].cells/chosen, rl | 6 | 結果の表。行が順に出て、rlの文で最良の行（chosen）を強調 |
+| figure | image, credit, license, items[].box/t/c | 4 | 論文などの図。注目する部分（box: [左, 上, 幅, 高さ]を0〜100で）に枠。図の下に出典とライセンス |
 | custom:<名前> | 部品しだい | 部品しだい | `src/custom/`に作った専用の場面。作り方は`custom-scenes.md` |
 
 ## 書き方の決まり

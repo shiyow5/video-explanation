@@ -10,6 +10,7 @@ import {
 } from "remotion";
 import { Background, Caption, Progress, SourceNote } from "./parts";
 import { kindComponent } from "./registry";
+import { TermNotes } from "./terms";
 import { STORIES, StoryDef } from "./stories";
 import { SceneTiming, buildTimings, fontFamily, totalFrames } from "./theme";
 import { Script } from "./types";
@@ -44,7 +45,11 @@ const Scene: React.FC<{ timing: SceneTiming; story: Script }> = ({
     <AbsoluteFill style={{ fontFamily }}>
       <Body scene={scene} at={at} story={story} />
       {scene.stage > 0 ? (
-        <Progress stages={story.stages} stage={scene.stage} />
+        <Progress
+          stages={story.stages}
+          stage={scene.stage}
+          reveal={story.revealStages ?? story.mode === "paper"}
+        />
       ) : null}
       {timing.lines.map((l, i) => (
         <Sequence
@@ -58,6 +63,7 @@ const Scene: React.FC<{ timing: SceneTiming; story: Script }> = ({
           <Caption text={l.text} />
         </Sequence>
       ))}
+      <TermNotes scene={scene} story={story} at={at} />
       {scene.source ? <SourceNote text={scene.source} /> : null}
       <Wipe />
     </AbsoluteFill>
